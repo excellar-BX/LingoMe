@@ -1,6 +1,7 @@
+//app/page.js
 "use client"
 import { useState, useCallback, useEffect } from 'react'
-import { FaLanguage, FaImage, FaMicrophone, FaHistory, FaRocket, FaExclamationTriangle } from 'react-icons/fa'
+import { FaLanguage, FaImage, FaMicrophone, FaHistory, FaRocket, FaExclamationTriangle, FaFile, FaDownload, FaTrash, FaCopy, FaCheck } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
 import ImageUpload from './components/ImageUpload'
 import SpeechToText from './components/SpeechToText'
@@ -16,11 +17,22 @@ export default function Home() {
   const [isTranslating, setIsTranslating] = useState(false)
   const [error, setError] = useState(null)
   const [debugInfo, setDebugInfo] = useState(null)
+  
+  // OCR History Management
+  const [extractedTexts, setExtractedTexts] = useState([])
+  const [copiedId, setCopiedId] = useState(null)
 
   // Initialize translation history in memory
   useEffect(() => {
     if (!window.translationHistory) {
       window.translationHistory = []
+    }
+    // Initialize OCR history
+    if (!window.ocrHistory) {
+      window.ocrHistory = []
+      setExtractedTexts([])
+    } else {
+      setExtractedTexts(window.ocrHistory)
     }
   }, [])
 
@@ -90,11 +102,28 @@ export default function Home() {
     }
   }, [targetLanguage])
 
-  const handleTextExtracted = useCallback((text) => {
+  const handleTextExtracted = useCallback((text, metadata = {}) => {
     console.log('Text extracted from image:', text)
     setCurrentText(text)
+    
+    // Add to OCR history with enhanced metadata
+    const newEntry = {
+      id: Date.now(),
+      text: text.trim(),
+      timestamp: new Date().toLocaleString(),
+      confidence: metadata.confidence || 0,
+      method: metadata.method || 'unknown',
+      wordCount: text.trim().split(/\s+/).filter(word => word.length > 0).length,
+      charCount: text.trim().length
+    }
+    
+    const updatedHistory = [newEntry, ...extractedTexts].slice(0, 20) // Keep last 20 entries
+    setExtractedTexts(updatedHistory)
+    window.ocrHistory = updatedHistory
+    
+    // Auto-translate if text is extracted
     translateText(text)
-  }, [translateText])
+  }, [translateText, extractedTexts])
 
   const handleSpeechToText = useCallback((text) => {
     console.log('Speech to text result:', text)
@@ -114,10 +143,49 @@ export default function Home() {
     setDebugInfo(null)
   }
 
+  // OCR History Management Functions
+  const clearOCRHistory = () => {
+    setExtractedTexts([])
+    window.ocrHistory = []
+  }
+
+  const downloadAsText = () => {
+    const allTexts = extractedTexts.map(entry => 
+      `[${entry.timestamp}] (Confidence: ${entry.confidence}% | Method: ${entry.method})\n${entry.text}\n\n`
+    ).join('')
+    
+    const blob = new Blob([allTexts], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `extracted-texts-${new Date().toISOString().split('T')[0]}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const copyToClipboard = async (text, id) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch (error) {
+      console.error('Failed to copy text:', error)
+    }
+  }
+
+  const useTextForTranslation = (text) => {
+    setCurrentText(text)
+    setActiveTab('image') // Switch back to main view
+    translateText(text)
+  }
+
   const tabs = [
-    { id: 'image', label: 'Image OCR', icon: FaImage },
-    { id: 'speech', label: 'Speech', icon: FaMicrophone },
-    { id: 'history', label: 'History', icon: FaHistory },
+    { id: 'image', label: 'Image OCR', icon: <FaImage/> },
+    { id: 'speech', label: 'Speech', icon: <FaMicrophone/> },
+    { id: 'history', label: 'History', icon: <FaHistory/> },
+    { id: 'ocr-history', label: 'OCR History', icon: <FaFile/> },
   ]
 
   return (
@@ -167,7 +235,7 @@ export default function Home() {
                   : 'text-white hover:bg-white/10'
               }`}
             >
-              <tab.icon />
+              {tab.icon}
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           ))}
@@ -242,6 +310,118 @@ export default function Home() {
                 exit={{ opacity: 0, x: 20 }}
               >
                 <TranslationHistory />
+              </motion.div>
+            )}
+
+            {activeTab === 'ocr-history' && (
+              <motion.div
+                key="ocr-history"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-4"
+              >
+                {/* OCR History Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <FaFile className="text-2xl text-white" />
+                    <h2 className="text-2xl font-bold text-white">OCR History</h2>
+                    <span className="bg-white/20 text-white text-sm px-2 py-1 rounded-full">
+                      {extractedTexts.length} items
+                    </span>
+                  </div>
+                  
+                  {extractedTexts.length > 0 && (
+                    <div className="flex space-x-2">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={downloadAsText}
+                        className="bg-green-500/20 border border-green-500/30 text-green-300 px-4 py-2 rounded-lg hover:bg-green-500/30 transition-colors flex items-center space-x-2"
+                      >
+                        <FaDownload />
+                        <span>Export</span>
+                      </motion.button>
+                      
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={clearOCRHistory}
+                        className="bg-red-500/20 border border-red-500/30 text-red-300 px-4 py-2 rounded-lg hover:bg-red-500/30 transition-colors flex items-center space-x-2"
+                      >
+                        <FaTrash />
+                        <span>Clear</span>
+                      </motion.button>
+                    </div>
+                  )}
+                </div>
+
+                {/* OCR History List */}
+                {extractedTexts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FaFile className="text-4xl text-white/30 mx-auto mb-4" />
+                    <p className="text-white/60 text-lg">No OCR history yet</p>
+                    <p className="text-white/40 text-sm">Extract text from images to see them here</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {extractedTexts.map((entry, index) => (
+                      <motion.div
+                        key={entry.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <span className="text-white/60 text-sm">{entry.timestamp}</span>
+                            <div className="flex items-center space-x-2 text-xs">
+                              <span className={`px-2 py-1 rounded-full ${
+                                entry.confidence >= 80 ? 'bg-green-500/20 text-green-300' :
+                                entry.confidence >= 60 ? 'bg-yellow-500/20 text-yellow-300' :
+                                'bg-red-500/20 text-red-300'
+                              }`}>
+                                {entry.confidence}% confidence
+                              </span>
+                              <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full">
+                                {entry.method}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex space-x-2">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => copyToClipboard(entry.text, entry.id)}
+                              className="text-white/60 hover:text-white p-1"
+                            >
+                              {copiedId === entry.id ? <FaCheck className="text-green-400" /> : <FaCopy />}
+                            </motion.button>
+                            
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => useTextForTranslation(entry.text)}
+                              className="text-blue-400 hover:text-blue-300 p-1"
+                            >
+                              <FaLanguage />
+                            </motion.button>
+                          </div>
+                        </div>
+                        
+                        <p className="text-white text-sm leading-relaxed line-clamp-3">
+                          {entry.text}
+                        </p>
+                        
+                        <div className="flex items-center justify-between mt-3 text-xs text-white/40">
+                          <span>{entry.wordCount} words • {entry.charCount} characters</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
