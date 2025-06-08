@@ -131,7 +131,7 @@ export default function Home() {
           <div className="flex items-center justify-center space-x-3 mb-4">
             <FaRocket className="text-4xl text-white animate-float" />
             <h1 className="text-4xl md:text-6xl font-bold text-white text-shadow-lg">
-              AI Translator
+              Lingo Me AI Translator
             </h1>
           </div>
           <p className="text-xl text-white/80 font-medium">
@@ -295,7 +295,7 @@ export default function Home() {
           className="text-center mt-12 text-white/60"
         >
           <p className="text-sm">
-            Powered by AI • Built for global communication
+            Powered by Lingo Me AI Translator • Built for global communication
           </p>
         </motion.footer>
       </div>
