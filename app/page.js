@@ -1,3 +1,4 @@
+"use client"
 import { useState, useCallback, useEffect } from 'react'
 import { FaLanguage, FaImage, FaMicrophone, FaHistory, FaRocket, FaExclamationTriangle } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
