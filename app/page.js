@@ -1,7 +1,5 @@
-'use client'
-
 import { useState, useCallback, useEffect } from 'react'
-import { FaLanguage, FaImage, FaMicrophone, FaHistory, FaRocket } from 'react-icons/fa'
+import { FaLanguage, FaImage, FaMicrophone, FaHistory, FaRocket, FaExclamationTriangle } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
 import ImageUpload from './components/ImageUpload'
 import SpeechToText from './components/SpeechToText'
@@ -16,6 +14,7 @@ export default function Home() {
   const [translation, setTranslation] = useState('')
   const [isTranslating, setIsTranslating] = useState(false)
   const [error, setError] = useState(null)
+  const [debugInfo, setDebugInfo] = useState(null)
 
   // Initialize translation history in memory
   useEffect(() => {
@@ -25,12 +24,18 @@ export default function Home() {
   }, [])
 
   const translateText = useCallback(async (text) => {
-    if (!text.trim()) return
+    if (!text.trim()) {
+      setError('Please provide text to translate')
+      return
+    }
 
     setIsTranslating(true)
     setError(null)
+    setDebugInfo(null)
 
     try {
+      console.log('Starting translation request...')
+      
       const response = await fetch('/api/translate', {
         method: 'POST',
         headers: {
@@ -42,12 +47,25 @@ export default function Home() {
         }),
       })
 
-      if (!response.ok) {
-        throw new Error('Translation failed')
-      }
+      console.log('Translation API response status:', response.status)
 
       const data = await response.json()
+      console.log('Translation API response data:', data)
+
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}: Translation request failed`)
+      }
+
+      if (!data.translation) {
+        throw new Error('No translation received from server')
+      }
+
       setTranslation(data.translation)
+      setDebugInfo({
+        service: data.service || 'unknown',
+        sourceLanguage: data.sourceLanguage || 'auto',
+        targetLanguage: data.targetLanguage || targetLanguage
+      })
 
       // Save to memory-based history
       const historyItem = {
@@ -59,30 +77,41 @@ export default function Home() {
       }
 
       window.translationHistory = [historyItem, ...(window.translationHistory || [])].slice(0, 50)
+      
+      console.log('Translation successful:', data.translation)
 
     } catch (error) {
       console.error('Translation error:', error)
-      setError('Failed to translate text. Please try again.')
+      setError(error.message || 'Failed to translate text. Please try again.')
+      setDebugInfo({ error: error.message, timestamp: new Date().toISOString() })
     } finally {
       setIsTranslating(false)
     }
   }, [targetLanguage])
 
   const handleTextExtracted = useCallback((text) => {
+    console.log('Text extracted from image:', text)
     setCurrentText(text)
     translateText(text)
   }, [translateText])
 
   const handleSpeechToText = useCallback((text) => {
+    console.log('Speech to text result:', text)
     setCurrentText(text)
     translateText(text)
   }, [translateText])
 
   const handleRetranslate = useCallback(() => {
     if (currentText) {
+      console.log('Retranslating text:', currentText)
       translateText(currentText)
     }
   }, [currentText, translateText])
+
+  const clearError = () => {
+    setError(null)
+    setDebugInfo(null)
+  }
 
   const tabs = [
     { id: 'image', label: 'Image OCR', icon: FaImage },
@@ -150,9 +179,31 @@ export default function Home() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 text-red-200 mb-6"
+              className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 mb-6"
             >
-              {error}
+              <div className="flex items-start space-x-3">
+                <FaExclamationTriangle className="text-red-400 text-xl flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-red-200 font-semibold mb-1">Translation Error</h3>
+                  <p className="text-red-300 text-sm">{error}</p>
+                  {debugInfo && (
+                    <details className="mt-2">
+                      <summary className="text-red-400 text-xs cursor-pointer hover:text-red-300">
+                        Debug Information
+                      </summary>
+                      <pre className="text-red-400 text-xs mt-1 bg-red-900/20 p-2 rounded overflow-x-auto">
+                        {JSON.stringify(debugInfo, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+                <button
+                  onClick={clearError}
+                  className="text-red-400 hover:text-red-300 text-sm font-medium"
+                >
+                  ✕
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -213,14 +264,24 @@ export default function Home() {
                     <FaLanguage className="text-4xl text-white mb-4" />
                   </motion.div>
                   <p className="text-white text-lg font-medium">Translating...</p>
+                  <p className="text-white/60 text-sm mt-2">Processing your text...</p>
                 </div>
               ) : (
-                <TranslationResult
-                  original={currentText}
-                  translation={translation}
-                  targetLanguage={targetLanguage}
-                  onRetranslate={handleRetranslate}
-                />
+                <div>
+                  <TranslationResult
+                    original={currentText}
+                    translation={translation}
+                    targetLanguage={targetLanguage}
+                    onRetranslate={handleRetranslate}
+                  />
+                  {debugInfo && debugInfo.service && (
+                    <div className="mt-4 text-center">
+                      <span className="text-white/60 text-xs">
+                        Translated using: {debugInfo.service}
+                      </span>
+                    </div>
+                  )}
+                </div>
               )}
             </motion.div>
           )}
