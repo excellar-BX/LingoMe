@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server'
 
 export async function POST(request) {
@@ -25,14 +24,14 @@ export async function POST(request) {
 
     console.log('Making request to DeepSeek API...')
 
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'deepseek/deepseek-r1-0528:free',
         messages: [
           {
             role: 'system',
@@ -42,11 +41,8 @@ export async function POST(request) {
             role: 'user',
             content: text
           }
-        ],
-        temperature: 0.1,
-        max_tokens: 2000,
-        stream: false
-      }),
+        ]
+      })
     })
 
     console.log('DeepSeek API response status:', response.status)
