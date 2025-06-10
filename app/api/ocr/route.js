@@ -43,23 +43,31 @@ export async function POST(request) {
 
     // Method 1: Try OCR.space API (free tier)
     try {
-      console.log('Trying OCR.space API...')
-      const ocrResponse = await fetch('https://api.ocr.space/parse/image', {
-        method: 'POST',
-        headers: {
-          'apikey': process.env.OCR_SPACE_API_KEY || 'helloworld', // Free tier key
-        },
-        body: (() => {
-          const formData = new FormData()
-          formData.append('base64Image', `data:${imageFile.type};base64,${base64Image}`)
-          formData.append('language', 'eng')
-          formData.append('isOverlayRequired', 'false')
-          formData.append('detectOrientation', 'true')
-          formData.append('scale', 'true')
-          formData.append('OCREngine', '2') // Use OCR Engine 2 for better accuracy
-          return formData
-        })(),
-      })
+  console.log('Trying OCR.space API...')
+  const ocrResponse = await fetch('https://api.ocr.space/parse/image', {
+    method: 'POST',
+    headers: {
+      'apikey': process.env.OCR_SPACE_API_KEY || 'helloworld', // Free tier key
+    },
+    body: (() => {
+      const formData = new FormData()
+      formData.append('base64Image', `data:${imageFile.type};base64,${base64Image}`)
+      
+      // Method 1: Use comma-separated string for multiple languages (auto-detection)
+      formData.append('language', 'auto')
+      
+      // Alternative Method 2: Let OCR.space auto-detect (recommended)
+      // formData.append('language', 'eng') // Use English as fallback
+      
+      formData.append('isOverlayRequired', 'false')
+      formData.append('detectOrientation', 'true')
+      formData.append('scale', 'true')
+      formData.append('OCREngine', '2') // Use OCR Engine 2 for better accuracy
+      formData.append('isTable', 'false') // Helps with detection
+      
+      return formData
+    })(),
+  })
 
       if (ocrResponse.ok) {
         const ocrData = await ocrResponse.json()
