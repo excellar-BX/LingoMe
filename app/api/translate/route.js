@@ -35,7 +35,7 @@ export async function POST(request) {
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Translate the given text to ${getLanguageName(targetLanguage)}. Only return the translation, no explanations or additional text. If the source language is the same as target language, return the original text. Be precise and maintain the original meaning, don't write only half of the translation, write out the complete translation.`
+            content: `You are a professional translator. Translate the given text to ${getLanguageName(targetLanguage)}. Only return the translation, no explanations or additional text. If the source language is the same as target language, return the original text. Be precise and maintain the original meaning.`
           },
           {
             role: 'user',
