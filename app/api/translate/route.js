@@ -128,7 +128,7 @@ async function fallbackTranslation(text, targetLanguage) {
     }
 
   } catch (error) {
-    console.error('Fallback translation error:', error)
+    console.error('Fallback translation error:', error);
     
     // Last resort: Simple word-by-word translation for basic phrases
     const simpleTranslation = getSimpleTranslation(text, targetLanguage)
