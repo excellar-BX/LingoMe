@@ -4,7 +4,7 @@
 
 Perfect for travelers, immigrants, and global communication
 
-![Lingo Me AI Translator](./lingome.png)
+![Lingo Me AI Translator](lingome.png)
 
 ## ✨ Features
 
