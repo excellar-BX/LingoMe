@@ -21,7 +21,7 @@ export default function SpeechToText({ onSpeechToText }) {
       { code: 'en-US', name: 'English', flag: '🇺🇸' },
       { code: 'yo-NG', name: 'Yoruba', flag: '🇳🇬' },
       { code: 'ha-NG', name: 'Hausa', flag: '🇳🇬' },
-{ code: 'ig-NG', name: 'Igbo (Coming Soon)', flag: '🇳🇬', disabled: true }
+      { code: 'ig-NG', name: 'Igbo (Coming Soon)', flag: '🇳🇬', disabled: true }
     ],
     'KE': [
       { code: 'sw-KE', name: 'Swahili', flag: '🇰🇪' },
@@ -229,11 +229,16 @@ export default function SpeechToText({ onSpeechToText }) {
                 <button
                   key={language.code}
                   onClick={() => {
-                    setSelectedLanguage(language.code)
-                    setShowLanguageSelector(false)
+                    if (!language.disabled) {
+                      setSelectedLanguage(language.code)
+                      setShowLanguageSelector(false)
+                    }
                   }}
+                  disabled={language.disabled}
                   className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-all duration-200 ${
-                    selectedLanguage === language.code
+                    language.disabled
+                      ? 'opacity-50 cursor-not-allowed text-white/40'
+                      : selectedLanguage === language.code
                       ? 'bg-white/20 text-white'
                       : 'text-white/70 hover:bg-white/10 hover:text-white'
                   }`}
