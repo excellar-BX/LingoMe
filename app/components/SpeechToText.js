@@ -20,7 +20,8 @@ export default function SpeechToText({ onSpeechToText }) {
     'NG': [
       { code: 'en-US', name: 'English', flag: '🇺🇸' },
       { code: 'yo-NG', name: 'Yoruba', flag: '🇳🇬' },
-      { code: 'ha-NG', name: 'Hausa', flag: '🇳🇬' }
+      { code: 'ha-NG', name: 'Hausa', flag: '🇳🇬' },
+{ code: 'ig-NG', name: 'Igbo (Coming Soon)', flag: '🇳🇬', disabled: true }
     ],
     'KE': [
       { code: 'sw-KE', name: 'Swahili', flag: '🇰🇪' },
